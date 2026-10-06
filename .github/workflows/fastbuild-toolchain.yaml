@@ -62,13 +62,18 @@ jobs:
           cp -r $bp/files/ . &>/dev/null ||:
           bash $bp/custom.sh &>/dev/null ||:
           make defconfig
+          umask 022
+          grep -qF -- "--no-same-permissions -xf " include/download.mk || sed -i "s/-xf /--no-same-permissions -xf /" include/download.mk
           make download -j8 2>&1 | tee /dev/stderr | grep -q "ERROR:" || [ $PIPESTATUS -ne 0 ] && exit 1 ||:
+          git checkout -- include/download.mk ||:
         '
 
     - name: Compile OpenWrt
       run: |
         for mode in c s; do
           if docker_exec -e MODE=$mode DK bash -e -c '
+            umask 022
+            export TAR_OPTIONS="--no-same-permissions"
             bash $DK_PROFILE/pre_compile.sh 2>&- ||:
             cd $DK_OPENWRT
             export FORCE_UNSAFE_CONFIGURE=1
